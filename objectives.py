@@ -1,0 +1,148 @@
+
+from __future__ import annotations
+from rescue_core.mission import MissionMap, MissionState, Transition
+
+class ReachTargetObjective:
+    """Reach one labeled target in a mission map.
+
+    Q2 uses this objective before BFS or DFS can do anything useful. If a Q2
+    test fails with a MissionState/Transition/successors error, start here
+    before debugging your frontier code in planner.py.
+    """
+
+    def __init__(self, mission: MissionMap, target_label: str):
+        self.mission = mission
+        self.target_label = target_label
+        locations = mission.target_locations([target_label])
+        self.target_location = locations[target_label]
+
+    def initial_state(self) -> MissionState:
+        # TODO for Q2:
+        # Return a MissionState with three fields:
+        #   1. robot: the starting grid location, self.mission.start
+        #   2. remaining: a frozenset containing self.target_label
+        #   3. battery: the starting battery, self.mission.initial_battery
+        raise NotImplementedError
+
+    def is_goal(self, state: MissionState) -> bool:
+        # TODO for Q2:
+        # The single-target mission is done when the robot's location equals
+        # self.target_location.
+        raise NotImplementedError
+
+    def successors(self, state: MissionState) -> list[Transition]:
+        # TODO for Q2:
+        # Return one Transition for each legal move the robot can afford.
+        #
+        # Useful API calls:
+        #   self.mission.legal_neighbors(state.robot)
+        #       yields (action, next_location, movement_cost)
+        #   self.mission.recharge_after_entering(next_location, battery)
+        #       refills the battery if next_location is a charging station
+        #
+        # Suggested structure:
+        #   - start with an empty list
+        #   - for each legal neighbor, subtract movement_cost from state.battery
+        #   - skip the move if the battery would become negative
+        #   - apply recharge_after_entering after paying the entry cost
+        #   - keep remaining as a frozenset; if next_location is the target,
+        #     remove self.target_label from it
+        #   - build next_state = MissionState(next_location, remaining, new_battery)
+        #   - append Transition(action, next_state, movement_cost)
+        raise NotImplementedError
+
+# === Q5 SELF-REFLECTION (0.5 point) ===
+# Write 3-5 sentences below, at least 25 words total.
+# Say whether you used GenAI, artificial intelligence,
+# machine learning, or a coding assistant for this question.
+# If yes, name the tool and summarize or copy the prompt(s).
+# If no, explain why not.
+# Say how you checked your answer.
+# Include at least one concrete project detail, such as a function name,
+# file name, map name, test id, or command you ran.
+#
+# Put your answer on the comment lines below the YOUR RESPONSE marker.
+# YOUR RESPONSE:
+#
+# === END Q5 SELF-REFLECTION ===
+
+class InspectLocationsObjective:
+    """Visit a set of labeled inspection beacons, in any order."""
+
+    def __init__(self, mission: MissionMap, labels: list[str] | tuple[str, ...] | None = None):
+        self.mission = mission
+        self.labels = tuple(labels) if labels is not None else tuple(sorted(mission.beacons))
+        self.locations = mission.target_locations(self.labels)
+
+    def initial_state(self) -> MissionState:
+        # TODO for Q5:
+        # Start at self.mission.start with self.mission.initial_battery.
+        # The remaining field should be a frozenset of labels that still need
+        # to be inspected. If the robot starts on one of those locations, that
+        # label is already complete and should not be included.
+        raise NotImplementedError
+
+    def is_goal(self, state: MissionState) -> bool:
+        # TODO for Q5:
+        # The objective is complete when there are no labels left in
+        # state.remaining.
+        raise NotImplementedError
+
+    def successors(self, state: MissionState) -> list[Transition]:
+        # TODO for Q5:
+        # This is similar to ReachTargetObjective.successors, but after moving
+        # you must also update state.remaining. If next_location matches the
+        # location of a remaining beacon label, remove that label in the next
+        # MissionState. Keep using legal_neighbors, recharge_after_entering,
+        # MissionState, and Transition.
+        raise NotImplementedError
+
+class RescueAllSurvivorsObjective:
+    """Reach all survivors, in any order, before the battery runs out.
+
+    Important: implement this before running Q6. The Q6 rescue-all heuristic
+    tests need this objective so they can generate legal rescue-all states and
+    transitions. Q7 and Q8 reuse the same objective for multi-survivor planners.
+    """
+
+    def __init__(self, mission: MissionMap):
+        self.mission = mission
+        self.labels = tuple(sorted(mission.survivors))
+        self.locations = mission.target_locations(self.labels)
+
+    def initial_state(self) -> MissionState:
+        # TODO before Q6:
+        # Start at self.mission.start with self.mission.initial_battery.
+        # The remaining field should be a frozenset of survivor labels that
+        # still need rescue. If the robot starts on a survivor location, that
+        # survivor is already rescued and should not be included.
+        raise NotImplementedError
+
+    def is_goal(self, state: MissionState) -> bool:
+        # TODO before Q6:
+        # The rescue-all mission is complete when state.remaining is empty.
+        raise NotImplementedError
+
+    def successors(self, state: MissionState) -> list[Transition]:
+        # TODO before Q6:
+        # This has the same shape as InspectLocationsObjective.successors.
+        # Generate legal battery-feasible moves with legal_neighbors and
+        # recharge_after_entering. Then remove any remaining survivor label
+        # whose location equals next_location before creating the next
+        # MissionState and Transition.
+        raise NotImplementedError
+
+# === Q7 SELF-REFLECTION (0.5 point) ===
+# Write 3-5 sentences below, at least 25 words total.
+# Say whether you used GenAI, artificial intelligence,
+# machine learning, or a coding assistant for this question.
+# If yes, name the tool and summarize or copy the prompt(s).
+# If no, explain why not.
+# Say how you checked your answer.
+# Include at least one concrete project detail, such as a function name,
+# file name, map name, test id, or command you ran.
+#
+# Put your answer on the comment lines below the YOUR RESPONSE marker.
+# YOUR RESPONSE:
+#
+# === END Q7 SELF-REFLECTION ===

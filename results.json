@@ -1,0 +1,28 @@
+{
+  "score": 0.5,
+  "max_score": 4.0,
+  "tests": [
+    {
+      "name": "Q3.1 UCS chooses lower-cost route on rubble_corridor",
+      "score": 0,
+      "max_score": 1.75,
+      "status": "failed",
+      "output": "Expected behavior: Expected a valid plan to S1 with total cost exactly 8 on rubble_corridor.\nLikely place to check: Check ReachTargetObjective in objectives.py, then check uniform_cost_plan uses PriorityFrontier with node.path_cost as priority.\n\nNotImplementedError: \nTraceback (most recent call last):\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\autograder.py\", line 446, in run_case\n    out = case[\"fn\"]()\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\autograder.py\", line 564, in ucs_rubble_corridor\n    plan = uniform_cost_plan(obj)\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\planner.py\", line 379, in uniform_cost_plan\n    return graph_search(objective, PriorityFrontier(), lambda n: n.path_cost)\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\planner.py\", line 302, in graph_search\n    start_state = objective.initial_state() #ask objective for start state\nNotImplementedError\n"
+    },
+    {
+      "name": "Q3.2 UCS uses charger route on battery_challenge",
+      "score": 0,
+      "max_score": 1.75,
+      "status": "failed",
+      "output": "Expected behavior: Expected a valid plan that visits the charging station and has total cost exactly 30.\nLikely place to check: Check ReachTargetObjective.successors for battery/recharge updates, then check UCS path-cost priority.\n\nNotImplementedError: \nTraceback (most recent call last):\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\autograder.py\", line 446, in run_case\n    out = case[\"fn\"]()\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\autograder.py\", line 575, in ucs_battery_challenge\n    plan = uniform_cost_plan(obj)\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\planner.py\", line 379, in uniform_cost_plan\n    return graph_search(objective, PriorityFrontier(), lambda n: n.path_cost)\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\planner.py\", line 302, in graph_search\n    start_state = objective.initial_state() #ask objective for start state\nNotImplementedError\n"
+    },
+    {
+      "name": "Q3.R Self-reflection for Q3",
+      "score": 0.5,
+      "max_score": 0.5,
+      "status": "passed",
+      "output": "Completed self-reflection in planner.py (53 words)."
+    }
+  ],
+  "stdout_visibility": "visible"
+}
