@@ -1,0 +1,42 @@
+{
+  "score": 0.75,
+  "max_score": 4.0,
+  "tests": [
+    {
+      "name": "Q6.1 Inspection heuristic is consistent",
+      "score": 0.75,
+      "max_score": 0.75,
+      "status": "passed",
+      "output": "Inspection heuristic start value 8; checked consistency over 16468 states and 51348 transitions."
+    },
+    {
+      "name": "Q6.2 Rescue-all heuristic is consistent",
+      "score": 0,
+      "max_score": 0.75,
+      "status": "failed",
+      "output": "Expected behavior: Expected remaining_survivor_heuristic to be positive at the start, zero at goals, nonnegative, consistent across legal moves, and not overestimate the true optimal rescue-all cost on survivor_cluster.\nLikely place to check: Check RescueAllSurvivorsObjective.initial_state, is_goal, and successors in objectives.py first; then check remaining_survivor_heuristic in heuristics.py.\n\nAssertionError: Rescue-all heuristic should be positive at the start state; got 0.\nTraceback (most recent call last):\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 446, in run_case\n    out = case[\"fn\"]()\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 682, in survivor_heuristic_consistent\n    h, states, edges = cached_consistency(\"rescue_all\", obj, remaining_survivor_heuristic, \"Rescue-all\")\n                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 377, in cached_consistency\n    _CONSISTENCY_CACHE[cache_key] = check_consistent_heuristic(objective, heuristic, label)\n                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 345, in check_consistent_heuristic\n    assert start_h > 0, f\"{label} heuristic should be positive at the start state; got {start_h}.\"\n           ^^^^^^^^^^^\nAssertionError: Rescue-all heuristic should be positive at the start state; got 0.\n"
+    },
+    {
+      "name": "Q6.3 Rescue-all heuristic beats UCS expansions",
+      "score": 0,
+      "max_score": 1,
+      "status": "failed",
+      "output": "Expected behavior: Expected remaining_survivor_heuristic to pass the rescue-all sanity/consistency checks and make A* expand at most 65% as many nodes as the zero heuristic on large_survivor_cluster.\nLikely place to check: Check RescueAllSurvivorsObjective in objectives.py first; then make remaining_survivor_heuristic more informative while preserving consistency.\n\nAssertionError: Rescue-all heuristic should be positive at the start state; got 0.\nTraceback (most recent call last):\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 446, in run_case\n    out = case[\"fn\"]()\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 693, in survivor_heuristic_beats_zero\n    cached_consistency(\"rescue_all\", small, remaining_survivor_heuristic, \"Rescue-all\")\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 377, in cached_consistency\n    _CONSISTENCY_CACHE[cache_key] = check_consistent_heuristic(objective, heuristic, label)\n                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 345, in check_consistent_heuristic\n    assert start_h > 0, f\"{label} heuristic should be positive at the start state; got {start_h}.\"\n           ^^^^^^^^^^^\nAssertionError: Rescue-all heuristic should be positive at the start state; got 0.\n"
+    },
+    {
+      "name": "Q6.4 Rescue-all heuristic earns strong expansion score",
+      "score": 0,
+      "max_score": 1,
+      "status": "failed",
+      "output": "Expected behavior: Expected remaining_survivor_heuristic to pass the rescue-all sanity/consistency checks and make A* expand at most 35% as many nodes as the zero heuristic on large_survivor_cluster.\nLikely place to check: After RescueAllSurvivorsObjective works, think about a routing lower bound that accounts for relationships among all remaining survivors.\n\nAssertionError: Rescue-all heuristic should be positive at the start state; got 0.\nTraceback (most recent call last):\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 446, in run_case\n    out = case[\"fn\"]()\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 711, in survivor_heuristic_strong_tier\n    cached_consistency(\"rescue_all\", small, remaining_survivor_heuristic, \"Rescue-all\")\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 377, in cached_consistency\n    _CONSISTENCY_CACHE[cache_key] = check_consistent_heuristic(objective, heuristic, label)\n                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tanvigorre/Downloads/CSE4102-Project1/autograder.py\", line 345, in check_consistent_heuristic\n    assert start_h > 0, f\"{label} heuristic should be positive at the start state; got {start_h}.\"\n           ^^^^^^^^^^^\nAssertionError: Rescue-all heuristic should be positive at the start state; got 0.\n"
+    },
+    {
+      "name": "Q6.R Self-reflection for Q6",
+      "score": 0,
+      "max_score": 0.5,
+      "status": "failed",
+      "output": "Expected behavior:\nComplete the plain-comment self-reflection block for Q6.\n\nWhere to complete it:\nheuristics.py, inside the block labeled:\n=== Q6 SELF-REFLECTION (0.5 point) ===\n\nWhat to write:\nWrite 3-5 sentences, at least 25 words total, explaining whether you used GenAI, artificial intelligence, machine learning, or a coding assistant for Q6.\nIf yes, name the tool, such as ChatGPT, Copilot, Cursor, Perplexity, Claude, Gemini, DeepSeek, Grok, Windsurf, or another tool, and summarize or copy the prompt(s).\nIf no, explain that you did not use an AI/coding-assistant tool and say why not.\nAlso say how you checked your answer.\nInclude at least one concrete project detail, such as a function name, file name, map name, test id, or command.\n\nRecommended placement:\nWrite your answer on the comment lines below # YOUR RESPONSE:. The checker also accepts text after the colon on the same line, but the next-line format is easiest to read.\n\nIssue found:\nThe block is present, but YOUR RESPONSE is blank.\n\nConcrete detail examples:\ngraph_search, planner.py, Q2.1, tiny_rescue, autograder.py -q q6\n\nExample:\n# YOUR RESPONSE:\n# I used ChatGPT to ask how uniform-cost search should prioritize paths.\n# My prompt was: \"Explain UCS with a Python priority queue.\"\n# I checked my answer by running python3.13 autograder.py -q q6 and comparing the result on battery_challenge."
+    }
+  ],
+  "stdout_visibility": "visible"
+}

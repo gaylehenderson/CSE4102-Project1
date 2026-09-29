@@ -22,13 +22,17 @@ class ReachTargetObjective:
         #   1. robot: the starting grid location, self.mission.start
         #   2. remaining: a frozenset containing self.target_label
         #   3. battery: the starting battery, self.mission.initial_battery
-        raise NotImplementedError
-
+        
+        return MissionState(robot=self.mission.start,remaining=frozenset([self.target_label]),battery=self.mission.initial_battery)
+        
     def is_goal(self, state: MissionState) -> bool:
         # TODO for Q2:
         # The single-target mission is done when the robot's location equals
         # self.target_location.
-        raise NotImplementedError
+        
+        if (state.robot == self.target_location):
+            return True
+        return False
 
     def successors(self, state: MissionState) -> list[Transition]:
         # TODO for Q2:
@@ -49,10 +53,45 @@ class ReachTargetObjective:
         #     remove self.target_label from it
         #   - build next_state = MissionState(next_location, remaining, new_battery)
         #   - append Transition(action, next_state, movement_cost)
-        raise NotImplementedError
+        
+        successor_list = []
+
+        for action, next_location, movement_cost in self.mission.legal_neighbors(state.robot):
+            new_battery = state.battery - movement_cost
+
+            if new_battery < 0:
+                continue
+
+            new_battery = self.mission.recharge_after_entering(
+                next_location,
+                new_battery
+            )
+
+            remaining = state.remaining
+
+            if next_location == self.target_location:
+                remaining = frozenset(
+                    label for label in remaining
+                    if label != self.target_label
+                )
+
+            next_state = MissionState(
+                robot=next_location,
+                remaining=remaining,
+                battery=new_battery
+            )
+
+            successor_list.append(
+                Transition(action, next_state, movement_cost)
+            )
+
+        return successor_list
+        
 
 # === Q5 SELF-REFLECTION (0.5 point) ===
 # Write 3-5 sentences below, at least 25 words total.
+
+
 # Say whether you used GenAI, artificial intelligence,
 # machine learning, or a coding assistant for this question.
 # If yes, name the tool and summarize or copy the prompt(s).
@@ -80,13 +119,29 @@ class InspectLocationsObjective:
         # The remaining field should be a frozenset of labels that still need
         # to be inspected. If the robot starts on one of those locations, that
         # label is already complete and should not be included.
-        raise NotImplementedError
+        
+        start = self.mission.start
+        battery = self.mission.initial_battery
+
+        remaining = set(self.mission.beacons)
+
+        for label in self.mission.beacons:
+            if self.mission.beacons[label] == start:
+                remaining.remove(label)
+
+        remaining = frozenset(remaining)
+
+        return MissionState(
+            robot=start,
+            remaining=remaining,
+            battery=battery
+        )
 
     def is_goal(self, state: MissionState) -> bool:
         # TODO for Q5:
         # The objective is complete when there are no labels left in
         # state.remaining.
-        raise NotImplementedError
+        return len(state.remaining) == 0
 
     def successors(self, state: MissionState) -> list[Transition]:
         # TODO for Q5:
@@ -95,7 +150,38 @@ class InspectLocationsObjective:
         # location of a remaining beacon label, remove that label in the next
         # MissionState. Keep using legal_neighbors, recharge_after_entering,
         # MissionState, and Transition.
-        raise NotImplementedError
+        successor_list = []
+
+        for action, next_location, movement_cost in self.mission.legal_neighbors(state.robot):
+            new_battery = state.battery - movement_cost
+
+            if new_battery < 0:
+                continue
+
+            new_battery = self.mission.recharge_after_entering(
+                next_location,
+                new_battery
+            )
+
+            remaining = set(state.remaining)
+
+            for label in state.remaining:
+                if self.mission.beacons[label] == next_location:
+                    remaining.remove(label)
+
+            remaining = frozenset(remaining)
+
+            next_state = MissionState(
+                robot=next_location,
+                remaining=remaining,
+                battery=new_battery
+            )
+
+            successor_list.append(
+                Transition(action, next_state, movement_cost)
+            )
+
+        return successor_list
 
 class RescueAllSurvivorsObjective:
     """Reach all survivors, in any order, before the battery runs out.
@@ -116,12 +202,24 @@ class RescueAllSurvivorsObjective:
         # The remaining field should be a frozenset of survivor labels that
         # still need rescue. If the robot starts on a survivor location, that
         # survivor is already rescued and should not be included.
-        raise NotImplementedError
+        remaining = set()
+
+        for label, location in self.mission.beacons.items():
+            if location != self.mission.start:
+                remaining.add(label)
+
+        remaining = frozenset(remaining)
+
+        return MissionState(
+            robot=self.mission.start,
+            battery=self.mission.initial_battery,
+            remaining=remaining
+        )
 
     def is_goal(self, state: MissionState) -> bool:
         # TODO before Q6:
         # The rescue-all mission is complete when state.remaining is empty.
-        raise NotImplementedError
+        return len(state.remaining) == 0
 
     def successors(self, state: MissionState) -> list[Transition]:
         # TODO before Q6:
@@ -130,7 +228,34 @@ class RescueAllSurvivorsObjective:
         # recharge_after_entering. Then remove any remaining survivor label
         # whose location equals next_location before creating the next
         # MissionState and Transition.
-        raise NotImplementedError
+        
+        for next_location in self.mission.legal_neighbors(state.robot):
+            next_battery = state.battery - 1
+
+            if next_battery < 0:
+                continue
+
+            next_battery = self.mission.recharge_after_entering(next_location,next_battery)
+
+            remaining = set()
+
+            for label, location in self.mission.beacons.items():
+                if location != self.mission.start:
+                    remaining.add(label)
+
+            remaining = frozenset(remaining)
+
+            next_state = MissionState(
+                robot=next_location,
+                battery=next_battery,
+                remaining=remaining
+            )
+
+            yield Transition(
+                state=next_state,
+                action=next_location,
+                cost=1
+            )
 
 # === Q7 SELF-REFLECTION (0.5 point) ===
 # Write 3-5 sentences below, at least 25 words total.

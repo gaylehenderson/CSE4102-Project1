@@ -7,6 +7,7 @@ import math
 import random
 from collections import deque
 from typing import Callable, Protocol, Any
+from heuristics import distance_to_target_heuristic, remaining_inspection_heuristic
 
 class RescueObjective(Protocol):
     def initial_state(self): ...
@@ -73,27 +74,31 @@ class StackFrontier:
         #
         # In an instance method, self means "this particular StackFrontier
         # object." It is how the object remembers its own data.
-        raise NotImplementedError
+        
+        self._items = []
 
     def push(self, node: SearchNode):
         # TODO: add node to the frontier.
         #
         # Hint: for a list-based stack, add new items at the end.
-        raise NotImplementedError
+        self._items.append(node)
 
     def pop(self) -> SearchNode:
         # TODO: remove and return the next node.
         #
         # Hint: DFS needs last-in, first-out behavior. If a list contains
         # [first, second], the next pop should return second.
-        raise NotImplementedError
+        return self._items.pop()
 
     def empty(self) -> bool:
         # TODO: return True when no nodes remain.
         #
         # Hint: empty containers are falsey in Python, so either
         # len(self._items) == 0 or not self._items can work.
-        raise NotImplementedError
+        if len(self._items) == 0:
+            return True
+        else:
+            return False
 
 class QueueFrontier:
     """First-in, first-out frontier used for breadth-first planning."""
@@ -103,24 +108,27 @@ class QueueFrontier:
         # Hint: collections.deque is imported above and is designed for
         # efficient queue operations. A deque supports append(...) on the
         # right side and popleft(...) on the left side.
-        raise NotImplementedError
+        self._items = deque()
 
     def push(self, node: SearchNode):
         # TODO: add node to the frontier.
         #
         # Hint: for a deque-based queue, append new nodes on the right.
-        raise NotImplementedError
-
+        
+        self._items.append(node)
     def pop(self) -> SearchNode:
         # TODO: remove and return the next node.
         #
         # Hint: BFS needs first-in, first-out behavior. If a queue receives
         # first and then second, the next pop should return first.
-        raise NotImplementedError
-
+        
+        return self._items.popleft()
     def empty(self) -> bool:
         # TODO: return True when no nodes remain.
-        raise NotImplementedError
+        if len(self._items) == 0:
+            return True
+        else:
+            return False
 
 class PriorityFrontier:
     """Lowest-priority-first frontier used for cost-sensitive planning."""
@@ -134,7 +142,9 @@ class PriorityFrontier:
         # Why a counter? If two nodes have the same priority, Python should not
         # try to compare their states or plans. Store heap entries like:
         #   (priority, tie_break_number, node)
-        raise NotImplementedError
+        self.heap = []
+        self.counter = count()
+        
 
     def push(self, node: SearchNode):
         # TODO: add node using node.priority.
@@ -142,18 +152,20 @@ class PriorityFrontier:
         # Hint: heapq.heappush(heap_list, item) inserts one item while keeping
         # the smallest item ready to pop. The first tuple element should be
         # node.priority.
-        raise NotImplementedError
+        heapq.heappush(self.heap, (node.priority, next(self.counter), node))
+        
 
     def pop(self) -> SearchNode:
         # TODO: remove and return the lowest-priority node.
         #
         # Hint: heapq.heappop(...) returns the whole tuple you pushed. Return
         # only the SearchNode part, not the priority or counter.
-        raise NotImplementedError
+        return heapq.heappop(self.heap)[2]
+        
 
     def empty(self) -> bool:
         # TODO: return True when no nodes remain.
-        raise NotImplementedError
+        return not self.heap
 
 def state_key(state):
     """Return the mission-progress part of a state.
@@ -227,21 +239,98 @@ def graph_search(objective: RescueObjective, frontier, priority_fn: Callable[[Se
     #
     # 1. Ask the objective for the start state:
     #       start = objective.initial_state()
-    #
+    
+    start = objective.initial_state()
+    
     # 2. Wrap the start state in a SearchNode. At the start, the plan is []
     #    and path_cost is 0.
-    #
+    
+    start_node = SearchNode(state = start, plan = [], path_cost = 0,priority=0)
+    if priority_fn is not None:
+        start_node.priority = priority_fn(start_node)
+    
     # 3. If priority_fn is not None, compute the start node's priority before
     #    pushing it. This matters for UCS and A*.
-    #
+    
     # 4. Push the start node into the frontier.
-    #
+    
+    frontier.push(start_node) 
+    
     # 5. Create a reached dictionary. A useful shape is:
     #       reached[state_key(state)] = [(path_cost, battery_level), ...]
-    #
+
     #    Why a list of records? With battery, there may be more than one
     #    non-dominated way to reach the same location and remaining targets.
-    #
+    
+    
+    reached = {}
+    reached[state_key(start_node.state)] = [(start_node.path_cost, battery_level(start_node.state))]
+
+    while not frontier.empty():
+        node = frontier.pop()
+
+        key = state_key(node.state)
+        battery = battery_level(node.state)
+        records = reached.get(key, [])
+
+        # Skip nodes that have been dominated since insertion
+        if (node.path_cost, battery) not in records:
+            continue
+
+        # Check whether this is a goal
+        if objective.is_goal(node.state):
+            return node.plan
+
+        # Expand the node
+        LAST_SEARCH_STATS["expanded"] += 1
+
+        for transition in objective.successors(node.state):
+            child_state = transition.next_state
+            child_plan = node.plan + [transition.action]
+            child_cost = node.path_cost + transition.cost
+
+            #child = SearchNode(child_state, child_plan, child_cost)
+            
+            child = SearchNode(priority=0,state=child_state,plan=child_plan,path_cost=child_cost)
+
+            if priority_fn is not None:
+                child.priority = priority_fn(child)
+
+            child_key = state_key(child.state)
+            child_battery = battery_level(child.state)
+            
+           # print("STATE:", child.state)
+           # print("ROBOT:", child.state.robot, type(child.state.robot))
+           # print("REMAINING:", child.state.remaining, type(child.state.remaining))
+           # print("KEY:", child_key)
+
+            # Get existing routes to this state
+            existing = reached.get(child_key, [])
+
+            # Check whether an existing route dominates this child
+            dominated = any(
+                cost <= child_cost and battery >= child_battery
+                for cost, battery in existing
+            )
+
+            if dominated:
+                continue
+
+            # Remove routes dominated by this child
+            existing = [
+                (cost, battery)
+                for cost, battery in existing
+                if not (child_cost <= cost and child_battery >= battery)
+            ]
+
+            # Record this child as a non-dominated route
+            existing.append((child_cost, child_battery))
+            reached[child_key] = existing
+
+            # Add the child to the frontier
+            frontier.push(child)
+
+    raise ValueError("No solution found")
     # 6. While the frontier is not empty:
     #       node = frontier.pop()
     #
@@ -278,7 +367,7 @@ def graph_search(objective: RescueObjective, frontier, priority_fn: Callable[[Se
     # 12. If kept, update reached and push the child into the frontier.
     #
     # If the loop ends without finding a goal, raise ValueError.
-    raise NotImplementedError
+    
 
 def depth_first_plan(objective: RescueObjective) -> list[str]:
     # === Q2 SELF-REFLECTION (0.5 point) ===
@@ -297,11 +386,12 @@ def depth_first_plan(objective: RescueObjective) -> list[str]:
     # === END Q2 SELF-REFLECTION ===
     #
     # TODO: call graph_search with a StackFrontier
-    raise NotImplementedError
+    return graph_search(objective, StackFrontier())
 
 def breadth_first_plan(objective: RescueObjective) -> list[str]:
     # TODO: call graph_search with a QueueFrontier
-    raise NotImplementedError
+    
+    return graph_search(objective, QueueFrontier())
 
 def uniform_cost_plan(objective: RescueObjective) -> list[str]:
     # === Q3 SELF-REFLECTION (0.5 point) ===
@@ -320,7 +410,7 @@ def uniform_cost_plan(objective: RescueObjective) -> list[str]:
     # === END Q3 SELF-REFLECTION ===
     #
     # TODO: call graph_search with a PriorityFrontier and path-cost priority
-    raise NotImplementedError
+    return graph_search(objective, PriorityFrontier(), lambda n: n.path_cost)
 
 def astar_plan(objective: RescueObjective, heuristic: Callable[[Any, RescueObjective], float]) -> list[str]:
     # === Q4 SELF-REFLECTION (0.5 point) ===
@@ -339,7 +429,7 @@ def astar_plan(objective: RescueObjective, heuristic: Callable[[Any, RescueObjec
     # === END Q4 SELF-REFLECTION ===
     #
     # TODO: call graph_search with path_cost + heuristic
-    raise NotImplementedError
+    return graph_search(objective,PriorityFrontier(),priority_fn=lambda node: node.path_cost + remaining_inspection_heuristic(node.state, objective))
 
 class GreedyRescuePlanner:
     """Repeatedly plan to one target chosen by a heuristic scoring rule."""
