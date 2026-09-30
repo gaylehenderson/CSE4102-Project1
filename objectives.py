@@ -101,7 +101,7 @@ class ReachTargetObjective:
 # file name, map name, test id, or command you ran.
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
-# YOUR RESPONSE:
+# YOUR RESPONSE: I did use GenAI for this component of the project. I used ChatGPT to figure out the distinction between beacon and locations in the mission.py attributes to I could figure out what was the most appropriate attribute to use here. I used it because it allowed me to gain a deeper understanding of the computational underworkings of the project.
 #
 # === END Q5 SELF-REFLECTION ===
 
@@ -204,18 +204,18 @@ class RescueAllSurvivorsObjective:
         # survivor is already rescued and should not be included.
         remaining = set()
 
-        for label, location in self.mission.beacons.items():
+        for label in self.labels:
+            location = self.locations[label]
+
             if location != self.mission.start:
                 remaining.add(label)
-
-        remaining = frozenset(remaining)
 
         return MissionState(
             robot=self.mission.start,
             battery=self.mission.initial_battery,
-            remaining=remaining
+            remaining=frozenset(remaining)
         )
-
+        
     def is_goal(self, state: MissionState) -> bool:
         # TODO before Q6:
         # The rescue-all mission is complete when state.remaining is empty.
@@ -228,34 +228,40 @@ class RescueAllSurvivorsObjective:
         # recharge_after_entering. Then remove any remaining survivor label
         # whose location equals next_location before creating the next
         # MissionState and Transition.
-        
-        for next_location in self.mission.legal_neighbors(state.robot):
-            next_battery = state.battery - 1
+        result = []
+
+        for action, next_location, movement_cost in self.mission.legal_neighbors(state.robot):
+            next_battery = state.battery - movement_cost
 
             if next_battery < 0:
                 continue
 
-            next_battery = self.mission.recharge_after_entering(next_location,next_battery)
+            next_battery = self.mission.recharge_after_entering(
+                next_location,
+                next_battery
+            )
 
-            remaining = set()
+            remaining = set(state.remaining)
 
-            for label, location in self.mission.beacons.items():
-                if location != self.mission.start:
-                    remaining.add(label)
-
-            remaining = frozenset(remaining)
+            for label in state.remaining:
+                if self.locations[label] == next_location:
+                    remaining.remove(label)
 
             next_state = MissionState(
                 robot=next_location,
                 battery=next_battery,
-                remaining=remaining
+                remaining=frozenset(remaining)
             )
 
-            yield Transition(
-                state=next_state,
-                action=next_location,
-                cost=1
+            result.append(
+                Transition(
+                    action,
+                    next_state,
+                    movement_cost
+                )
             )
+
+        return result
 
 # === Q7 SELF-REFLECTION (0.5 point) ===
 # Write 3-5 sentences below, at least 25 words total.
@@ -268,6 +274,6 @@ class RescueAllSurvivorsObjective:
 # file name, map name, test id, or command you ran.
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
-# YOUR RESPONSE:
+# YOUR RESPONSE: I used GenAI for this component of the project. I used Claude to help me review the frozenset in successor() because I wasn't too familiar with the concept prior to this project. Again, I wasn't familiar with the concept so I wanted to learn it so I could use it
 #
 # === END Q7 SELF-REFLECTION ===

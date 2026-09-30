@@ -27,7 +27,7 @@ def distance_to_target_heuristic(state: MissionState, objective) -> float:
 # file name, map name, test id, or command you ran.
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
-# YOUR RESPONSE:
+# YOUR RESPONSE: I used GenAI when I was using the wrong attribute to call the locations of the objective. I went throught the mission.py file to figure out to structure the attribution calls to streamline the heuristic.
 #
 # === END Q6 SELF-REFLECTION ===
 
@@ -57,7 +57,7 @@ def remaining_inspection_heuristic(state: MissionState, objective) -> float:
         x1 = state.robot.row
         y1 = state.robot.col
         
-        location = objective.mission.beacons[label]
+        location = objective.locations[label]
 
         x2 = location.row
         y2 = location.col
@@ -93,7 +93,7 @@ def remaining_survivor_heuristic(state: MissionState, objective) -> float:
     locations = []
 
     for label in state.remaining:
-        locations.append(objective.mission.beacons[label])
+        locations.append(objective.locations[label])
 
     # Distance from robot to the closest remaining survivor
     closest_distance = float("inf")
@@ -107,31 +107,67 @@ def remaining_survivor_heuristic(state: MissionState, objective) -> float:
         if distance < closest_distance:
             closest_distance = distance
 
-    # Build a minimum spanning tree among remaining survivors
-    connected = [locations[0]]
-    unconnected = locations[1:]
+    # # Build a minimum spanning tree among remaining survivors
+    # connected = [locations[0]]
+    # unconnected = locations[1:]
 
-    mst_distance = 0
+    # mst_distance = 0
 
-    while len(unconnected) > 0:
-        smallest_distance = float("inf")
-        closest_location = None
+    # while len(unconnected) > 0:
+    #     smallest_distance = float("inf")
+    #     closest_location = None
 
-        for connected_location in connected:
-            for location in unconnected:
-                distance = (abs(connected_location.row - location.row) + abs(connected_location.col - location.col))
+    #     for connected_location in connected:
+    #         for location in unconnected:
+    #             distance = (abs(connected_location.row - location.row) + abs(connected_location.col - location.col))
 
-                if distance < smallest_distance:
-                    smallest_distance = distance
-                    closest_location = location
+    #             if distance < smallest_distance:
+    #                 smallest_distance = distance
+    #                 closest_location = location
 
-        mst_distance += smallest_distance
-        connected.append(closest_location)
-        unconnected.remove(closest_location)
+    #     mst_distance += smallest_distance
+    #     connected.append(closest_location)
+    #     unconnected.remove(closest_location)
 
-    return closest_distance + mst_distance
+    # return closest_distance + mst_distance
 
 def rescue_priority_score(state: MissionState, label: str, objective) -> float:
     """Lower scores are chosen first by GreedyRescuePlanner."""
     # TODO: score a remaining survivor/inspection target using distance and terrain awareness.
-    raise NotImplementedError
+    
+    target = objective.locations[label]
+    mission = objective.mission
+
+    if state.robot == target:
+        return 0
+
+    frontier = [(0, state.robot)]
+    distances = {state.robot: 0}
+
+    while frontier:
+        # Find the lowest-cost location in the frontier
+        min_index = 0
+
+        for i in range(1, len(frontier)):
+            print(frontier[i])
+            if frontier[i][0] < frontier[min_index][0]:
+                min_index = i
+
+        cost, location = frontier.pop(min_index)
+
+        if location == target:
+            return cost
+
+        if cost > distances[location]:
+            continue
+
+        for action, next_location, movement_cost in mission.legal_neighbors(location):
+            new_cost = cost + movement_cost
+
+            if next_location not in distances or new_cost < distances[next_location]:
+                distances[next_location] = new_cost
+                frontier.append((new_cost, next_location))
+
+    return float("inf")
+    
+
