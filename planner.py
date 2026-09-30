@@ -8,6 +8,7 @@ import random
 from collections import deque
 from typing import Callable, Protocol, Any
 from heuristics import distance_to_target_heuristic, remaining_inspection_heuristic
+from objectives import ReachTargetObjective
 
 class RescueObjective(Protocol):
     def initial_state(self): ...
@@ -381,7 +382,7 @@ def depth_first_plan(objective: RescueObjective) -> list[str]:
     # file name, map name, test id, or command you ran.
     #
     # Put your answer on the comment lines below the YOUR RESPONSE marker.
-    # YOUR RESPONSE:
+    # YOUR RESPONSE: I did use GenAI, as in ChatGPT, because I was having difficulty with the domination component of graph_search and I didn't realize that any() was an option. I previously had a very annoying for loop to parse out that component of the project and asked the AI if there was an easier way. Now, the code is much more readable which is great!
     #
     # === END Q2 SELF-REFLECTION ===
     #
@@ -424,7 +425,7 @@ def astar_plan(objective: RescueObjective, heuristic: Callable[[Any, RescueObjec
     # file name, map name, test id, or command you ran.
     #
     # Put your answer on the comment lines below the YOUR RESPONSE marker.
-    # YOUR RESPONSE:
+    # YOUR RESPONSE: For question 4, I used GenAI to realize that I was missing the third input for graph_search. The tool that I used, Claude, showed me how to structure the third input so I didn't have another additional line. Additionally, it reminded me that I could use input_title= so I can keep better track of what each input is going into!
     #
     # === END Q4 SELF-REFLECTION ===
     #
@@ -441,7 +442,35 @@ class GreedyRescuePlanner:
         # TODO: repeatedly choose and complete a remaining target until done.
         # This intentionally differs from older grid projects: objectives expose
         # labeled rescue targets and battery-aware MissionState objects.
-        raise NotImplementedError
+        state = objective.initial_state()
+        total_plan = []
+        
+        while state.remaining:
+                # 1. Pick the remaining target the heuristic scores lowest.
+            #    Sort first so ties break deterministically (frozenset order isn't stable).
+            best_label = min(
+                sorted(state.remaining),
+                key=lambda label: self.heuristic(state, label, objective),
+            )
+
+            # 2. Plan one leg from the CURRENT state (position and battery),
+            #    not from mission.start.
+            route = uniform_cost_plan(_SingleLegObjective(objective, state, best_label))
+            if route is None:
+                raise RuntimeError
+
+            total_plan.extend(route)
+
+            # 3. Replay the route so state.robot, battery, and remaining stay in sync.
+            for action in route:
+                for transition in objective.successors(state):
+                    if transition.action == action:
+                        state = getattr(transition, "next_state", None) or transition.state
+                        break
+                else:
+                    raise RuntimeError
+
+        return total_plan
 
 class SimulatedAnnealingRescuePlanner:
     """Use local search to improve the order of multi-survivor rescue targets."""
@@ -456,6 +485,7 @@ class SimulatedAnnealingRescuePlanner:
     def plan(self, objective) -> list[str]:
         # === Q8 SELF-REFLECTION (0.5 point) ===
         # Write 3-5 sentences below, at least 25 words total.
+        
         # Say whether you used GenAI, artificial intelligence,
         # machine learning, or a coding assistant for this question.
         # If yes, name the tool and summarize or copy the prompt(s).
@@ -465,7 +495,7 @@ class SimulatedAnnealingRescuePlanner:
         # file name, map name, test id, or command you ran.
         #
         # Put your answer on the comment lines below the YOUR RESPONSE marker.
-        # YOUR RESPONSE:
+        # YOUR RESPONSE: I did use GenAI, as in ChatGPT, to help me with certain tasks that I struggled to figure out the syntax for such as how to get the remaining labels (particularly using hasattr()). I additionally used it for the ValueError message since I am not the best with putting in breakers for when the code doesn't work like I anticipated. It helped me think about where my code could break and how I could account for that.
         #
         # === END Q8 SELF-REFLECTION ===
         #
@@ -494,7 +524,81 @@ class SimulatedAnnealingRescuePlanner:
         #    your planner is deterministic for the autograder.
         #
         # 7. Return the action list for the best order found.
-        raise NotImplementedError
+        
+        labels = tuple(objective.remaining if hasattr(objective, "remaining")
+                   else objective.labels) 
+
+        current_order = tuple(labels)
+        probability = random.Random(self.seed)
+
+        def evaluate(order):
+            state = objective.initial_state()
+            total_plan = []
+            total_cost = 0
+
+            for label in order:
+                leg_objective = _SingleLegObjective(objective, state, label)
+
+                try:
+                    leg_plan = uniform_cost_plan(leg_objective)
+                except ValueError:
+                    return float("inf"), []
+
+                total_plan.extend(leg_plan)
+
+                for action in leg_plan:
+                    for transition in objective.successors(state):
+                        if transition.action == action:
+                            state = transition.next_state
+                            total_cost += transition.cost
+                            break
+
+            return total_cost, total_plan
+
+        current_cost, current_plan = evaluate(current_order)
+
+        best_order = current_order
+        best_cost = current_cost
+        best_plan = current_plan
+
+        temperature = self.initial_temperature
+
+        for _ in range(self.iterations):
+
+            # Make a neighboring ordering by swapping two labels
+            neighbor = list(current_order)
+
+            if len(neighbor) >= 2:
+                i, j = probability.sample(range(len(neighbor)), 2)
+                neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+
+            neighbor = tuple(neighbor)
+
+            neighbor_cost, neighbor_plan = evaluate(neighbor)
+
+            # Always accept an improvement
+            if neighbor_cost < current_cost:
+                accept = True
+
+            # Sometimes accept a worse solution
+            elif temperature > 0:
+                chance = math.exp(-(neighbor_cost - current_cost) / temperature)
+                accept = probability.random() < chance
+
+            if accept:
+                current_order = neighbor
+                current_cost = neighbor_cost
+                current_plan = neighbor_plan
+
+            # Track the best solution ever found
+            if current_cost < best_cost:
+                best_order = current_order
+                best_cost = current_cost
+                best_plan = current_plan
+
+            temperature *= self.cooling_rate
+
+        return best_plan
 
 class _SingleLegObjective:
     """Adapter for planning from a current state to one target label."""
