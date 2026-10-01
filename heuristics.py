@@ -16,6 +16,7 @@ def distance_to_target_heuristic(state: MissionState, objective) -> float:
 
     return abs(x1 - x2) + abs(y1 - y2)
 
+
 # === Q6 SELF-REFLECTION (0.5 point) ===
 # Write 3-5 sentences below, at least 25 words total.
 # Say whether you used GenAI, artificial intelligence,
@@ -27,8 +28,9 @@ def distance_to_target_heuristic(state: MissionState, objective) -> float:
 # file name, map name, test id, or command you ran.
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
-# YOUR RESPONSE: I used GenAI when I was using the wrong attribute to call the locations of the objective. I went throught the mission.py file to figure out to structure the attribution calls to streamline the heuristic.
-#
+# YOUR RESPONSE:
+# We did use GenAI for this question. Specifically, I prompted Claude to help me with debugging the issues in the remaining_survivor_heuristic function.
+# We checked our answer by running the autograder, and running the astar rescue-all surviror heuristic command.
 # === END Q6 SELF-REFLECTION ===
 
 def remaining_inspection_heuristic(state: MissionState, objective) -> float:
@@ -90,10 +92,9 @@ def remaining_survivor_heuristic(state: MissionState, objective) -> float:
     if len(state.remaining) == 0:
         return 0
 
-    locations = []
-
-    for label in state.remaining:
-        locations.append(objective.locations[label])
+    remaining_labels = list(state.remaining)
+    location_by_label = objective.mission.target_locations(remaining_labels)
+    locations = [location_by_label[label] for label in remaining_labels]
 
     # Distance from robot to the closest remaining survivor
     closest_distance = float("inf")
@@ -108,28 +109,28 @@ def remaining_survivor_heuristic(state: MissionState, objective) -> float:
             closest_distance = distance
 
     # # Build a minimum spanning tree among remaining survivors
-    # connected = [locations[0]]
-    # unconnected = locations[1:]
+    connected = [locations[0]]
+    unconnected = locations[1:]
 
-    # mst_distance = 0
+    mst_distance = 0
 
-    # while len(unconnected) > 0:
-    #     smallest_distance = float("inf")
-    #     closest_location = None
+    while len(unconnected) > 0:
+        smallest_distance = float("inf")
+        closest_location = None
 
-    #     for connected_location in connected:
-    #         for location in unconnected:
-    #             distance = (abs(connected_location.row - location.row) + abs(connected_location.col - location.col))
+        for connected_location in connected:
+            for location in unconnected:
+                distance = (abs(connected_location.row - location.row) + abs(connected_location.col - location.col))
 
-    #             if distance < smallest_distance:
-    #                 smallest_distance = distance
-    #                 closest_location = location
+                if distance < smallest_distance:
+                    smallest_distance = distance
+                    closest_location = location
 
-    #     mst_distance += smallest_distance
-    #     connected.append(closest_location)
-    #     unconnected.remove(closest_location)
+        mst_distance += smallest_distance
+        connected.append(closest_location)
+        unconnected.remove(closest_location)
 
-    # return closest_distance + mst_distance
+    return closest_distance + mst_distance
 
 def rescue_priority_score(state: MissionState, label: str, objective) -> float:
     """Lower scores are chosen first by GreedyRescuePlanner."""

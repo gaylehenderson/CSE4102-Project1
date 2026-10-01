@@ -101,7 +101,7 @@ class ReachTargetObjective:
 # file name, map name, test id, or command you ran.
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
-# YOUR RESPONSE: I did use GenAI for this component of the project. I used ChatGPT to figure out the distinction between beacon and locations in the mission.py attributes to I could figure out what was the most appropriate attribute to use here. I used it because it allowed me to gain a deeper understanding of the computational underworkings of the project.
+# YOUR RESPONSE: I did use GenAI for this component of the project. I used ChatGPT to figure out the distinction between beacon and locations in the mission.py attributes to I could figure out what was the most appropriate attribute to use here. I used it because it allowed me to gain a deeper understanding of the computational underworkings of the project. I checked my work by running the autograder tests and the python3.13 rescue.py --map beacon_rooms --planner bfs --objective inspect command.
 #
 # === END Q5 SELF-REFLECTION ===
 
@@ -190,11 +190,13 @@ class RescueAllSurvivorsObjective:
     tests need this objective so they can generate legal rescue-all states and
     transitions. Q7 and Q8 reuse the same objective for multi-survivor planners.
     """
-
     def __init__(self, mission: MissionMap):
         self.mission = mission
         self.labels = tuple(sorted(mission.survivors))
         self.locations = mission.target_locations(self.labels)
+        self.locations_to_label = {
+            location: label for label, location in self.locations.items()
+        }
 
     def initial_state(self) -> MissionState:
         # TODO before Q6:
@@ -202,18 +204,15 @@ class RescueAllSurvivorsObjective:
         # The remaining field should be a frozenset of survivor labels that
         # still need rescue. If the robot starts on a survivor location, that
         # survivor is already rescued and should not be included.
-        remaining = set()
-
-        for label in self.labels:
-            location = self.locations[label]
-
-            if location != self.mission.start:
-                remaining.add(label)
+        remaining = frozenset(
+            label for label in self.labels
+            if self.locations[label] != self.mission.start
+        )
 
         return MissionState(
             robot=self.mission.start,
             battery=self.mission.initial_battery,
-            remaining=frozenset(remaining)
+            remaining=remaining,
         )
         
     def is_goal(self, state: MissionState) -> bool:
@@ -228,8 +227,7 @@ class RescueAllSurvivorsObjective:
         # recharge_after_entering. Then remove any remaining survivor label
         # whose location equals next_location before creating the next
         # MissionState and Transition.
-        result = []
-
+        
         for action, next_location, movement_cost in self.mission.legal_neighbors(state.robot):
             next_battery = state.battery - movement_cost
 
@@ -241,11 +239,10 @@ class RescueAllSurvivorsObjective:
                 next_battery
             )
 
-            remaining = set(state.remaining)
-
-            for label in state.remaining:
-                if self.locations[label] == next_location:
-                    remaining.remove(label)
+            remaining= state.remaining
+            label=self.locations_to_label.get(next_location)
+            if label is not None:
+                remaining = remaining - {label}
 
             next_state = MissionState(
                 robot=next_location,
@@ -253,15 +250,11 @@ class RescueAllSurvivorsObjective:
                 remaining=frozenset(remaining)
             )
 
-            result.append(
-                Transition(
-                    action,
-                    next_state,
-                    movement_cost
-                )
+            yield Transition(
+                next_state=next_state,
+                action=action,
+                cost=movement_cost,
             )
-
-        return result
 
 # === Q7 SELF-REFLECTION (0.5 point) ===
 # Write 3-5 sentences below, at least 25 words total.
@@ -274,6 +267,6 @@ class RescueAllSurvivorsObjective:
 # file name, map name, test id, or command you ran.
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
-# YOUR RESPONSE: I used GenAI for this component of the project. I used Claude to help me review the frozenset in successor() because I wasn't too familiar with the concept prior to this project. Again, I wasn't familiar with the concept so I wanted to learn it so I could use it
+# YOUR RESPONSE: I used GenAI for this component of the project. I used Claude to help me review the frozenset in successor() because I wasn't too familiar with the concept prior to this project. Again, I wasn't familiar with the concept so I wanted to learn it so I could use it. I checked my answer by running the autograder and the python3.13 rescue.py --map large_survivor_cluster --planner greedy --objective rescue-all command.
 #
 # === END Q7 SELF-REFLECTION ===

@@ -1,81 +1,34 @@
 {
-<<<<<<< HEAD
-  "score": 2.5,
+  "score": 4.0,
   "max_score": 4.0,
   "tests": [
     {
-      "name": "Q1.1 Stack and Queue frontiers behave correctly",
-      "score": 0.75,
-      "max_score": 0.75,
+      "name": "Q5.1 Inspection objective reaches all beacons",
+      "score": 1.5,
+      "max_score": 1.5,
       "status": "passed",
-      "output": "StackFrontier is LIFO and QueueFrontier is FIFO."
+      "output": "Inspection objective completed all beacons with cost 24."
     },
     {
-      "name": "Q1.2 PriorityFrontier uses lowest priority first",
-      "score": 0.75,
-      "max_score": 0.75,
-      "status": "passed",
-      "output": "PriorityFrontier popped the lowest-priority state."
-    },
-    {
-      "name": "Q1.3 graph_search works with cost priority",
-      "score": 0,
-      "max_score": 1,
-      "status": "failed",
-      "output": "Expected behavior: Expected action list exactly ['toB', 'toD'] on the toy graph because total cost 4 beats the cost-11 route.\nLikely place to check: Check graph_search path_cost updates, priority_fn usage, and when nodes are pushed into the frontier.\n\nTypeError: '>=' not supported between instances of 'NoneType' and 'NoneType'\nTraceback (most recent call last):\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\autograder.py\", line 446, in run_case\n    out = case[\"fn\"]()\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\autograder.py\", line 492, in graph_search_cost_priority\n    plan = graph_search(ToyObjective(), PriorityFrontier(), lambda node: node.path_cost)\n  File \"C:\\Users\\gayle\\Downloads\\rescue-robot-project1\\planner.py\", line 323, in graph_search\n    if not (child_cost <= cost and child_battery >= battery)\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: '>=' not supported between instances of 'NoneType' and 'NoneType'\n"
-    },
-    {
-      "name": "Q1.4 graph_search handles dominated battery states",
+      "name": "Q5.2 Inspection state tracks remaining labels",
       "score": 1,
       "max_score": 1,
       "status": "passed",
-      "output": "graph_search ignored dominated lower-battery states."
+      "output": "Inspection state removed all completed beacon labels."
     },
     {
-      "name": "Q1.R Self-reflection for Q1",
-      "score": 0,
+      "name": "Q5.3 Inspection route cost is reasonable",
+      "score": 1,
+      "max_score": 1,
+      "status": "passed",
+      "output": "Inspection route cost 24 is within the expected bound."
+    },
+    {
+      "name": "Q5.R Self-reflection for Q5",
+      "score": 0.5,
       "max_score": 0.5,
-      "status": "failed",
-      "output": "Expected behavior:\nComplete the plain-comment self-reflection block for Q1.\n\nWhere to complete it:\nplanner.py, inside the block labeled:\n=== Q1 SELF-REFLECTION (0.5 point) ===\n\nWhat to write:\nWrite 3-5 sentences, at least 25 words total, explaining whether you used GenAI, artificial intelligence, machine learning, or a coding assistant for Q1.\nIf yes, name the tool, such as ChatGPT, Copilot, Cursor, Perplexity, Claude, Gemini, DeepSeek, Grok, Windsurf, or another tool, and summarize or copy the prompt(s).\nIf no, explain that you did not use an AI/coding-assistant tool and say why not.\nAlso say how you checked your answer.\nInclude at least one concrete project detail, such as a function name, file name, map name, test id, or command.\n\nRecommended placement:\nWrite your answer on the comment lines below # YOUR RESPONSE:. The checker also accepts text after the colon on the same line, but the next-line format is easiest to read.\n\nIssue found:\nThe block is present, but YOUR RESPONSE is blank.\n\nConcrete detail examples:\ngraph_search, planner.py, Q2.1, tiny_rescue, autograder.py -q q1\n\nExample:\n# YOUR RESPONSE:\n# I used ChatGPT to ask how uniform-cost search should prioritize paths.\n# My prompt was: \"Explain UCS with a Python priority queue.\"\n# I checked my answer by running python3.13 autograder.py -q q1 and comparing the result on battery_challenge."
-=======
-  "score": 3.5,
-  "max_score": 4.0,
-  "tests": [
-    {
-      "name": "Q8.1 Annealing planner rescues all survivors",
-      "score": 0.75,
-      "max_score": 0.75,
       "status": "passed",
-      "output": "Annealing planner rescued all survivors with cost 38."
-    },
-    {
-      "name": "Q8.2 Annealing planner is deterministic with a seed",
-      "score": 0.75,
-      "max_score": 0.75,
-      "status": "passed",
-      "output": "Annealing planner is deterministic for seed=7."
-    },
-    {
-      "name": "Q8.3 Annealing improves over greedy baseline",
-      "score": 1,
-      "max_score": 1,
-      "status": "passed",
-      "output": "Annealing improved over greedy baseline with cost 38."
-    },
-    {
-      "name": "Q8.4 Annealing reaches strong optimization target",
-      "score": 1,
-      "max_score": 1,
-      "status": "passed",
-      "output": "Annealing reached the strong optimization target with cost 38."
-    },
-    {
-      "name": "Q8.R Self-reflection for Q8",
-      "score": 0,
-      "max_score": 0.5,
-      "status": "failed",
-      "output": "Expected behavior:\nComplete the plain-comment self-reflection block for Q8.\n\nWhere to complete it:\nplanner.py, inside the block labeled:\n=== Q8 SELF-REFLECTION (0.5 point) ===\n\nWhat to write:\nWrite 3-5 sentences, at least 25 words total, explaining whether you used GenAI, artificial intelligence, machine learning, or a coding assistant for Q8.\nIf yes, name the tool, such as ChatGPT, Copilot, Cursor, Perplexity, Claude, Gemini, DeepSeek, Grok, Windsurf, or another tool, and summarize or copy the prompt(s).\nIf no, explain that you did not use an AI/coding-assistant tool and say why not.\nAlso say how you checked your answer.\nInclude at least one concrete project detail, such as a function name, file name, map name, test id, or command.\n\nRecommended placement:\nWrite your answer on the comment lines below # YOUR RESPONSE:. The checker also accepts text after the colon on the same line, but the next-line format is easiest to read.\n\nIssue found:\nThe block is present, but YOUR RESPONSE is blank.\n\nConcrete detail examples:\ngraph_search, planner.py, Q2.1, tiny_rescue, autograder.py -q q8\n\nExample:\n# YOUR RESPONSE:\n# I used ChatGPT to ask how uniform-cost search should prioritize paths.\n# My prompt was: \"Explain UCS with a Python priority queue.\"\n# I checked my answer by running python3.13 autograder.py -q q8 and comparing the result on battery_challenge."
->>>>>>> 2af006e529412efd594f834eb5f3272ee839126e
+      "output": "Completed self-reflection in objectives.py (83 words)."
     }
   ],
   "stdout_visibility": "visible"

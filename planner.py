@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 from dataclasses import dataclass, field
 from itertools import count
@@ -59,7 +58,8 @@ class SearchNode:
 #
 # Put your answer on the comment lines below the YOUR RESPONSE marker.
 # YOUR RESPONSE:
-#
+# I used Claude to help me understand the implementation details of the graph search algorithm. This, plus the notes left by the instructor in the graph_search function, helped me understand the implementation logic that was needed to pass the tests.
+# I checked my answer by running the autograder for q1 and comparing my result on battery_challenge.
 # === END Q1 SELF-REFLECTION ===
 
 class StackFrontier:
@@ -205,7 +205,13 @@ def is_dominated(records, path_cost, battery):
     inside graph_search.
     """
     # TODO: return True if one of the old records dominates the new state.
-    raise NotImplementedError
+    for old_path_cost, old_battery_level in records: 
+        cost_ok = old_path_cost <= path_cost
+        battery_ok = (battery is None or old_battery_level is None or old_battery_level >= battery)
+        strictly_better = (cost_ok and battery_ok and (old_path_cost < path_cost or (old_battery_level is not None and battery is not None and old_battery_level > battery)))
+        if cost_ok and battery_ok and strictly_better:
+            return True
+    return False
 
 def update_records(records, path_cost, battery):
     """Optional helper for graph_search.
@@ -221,7 +227,9 @@ def update_records(records, path_cost, battery):
     mission-progress state.
     """
     # TODO: return the updated records list.
-    raise NotImplementedError
+    kept = [(c, b) for c, b in records if not (c > path_cost and (b is None or b < battery))]
+    kept.append((path_cost, battery))
+    return kept
 
 def graph_search(objective: RescueObjective, frontier, priority_fn: Callable[[SearchNode], float] | None = None) -> list[str]:
     """Generic graph search.
@@ -240,98 +248,21 @@ def graph_search(objective: RescueObjective, frontier, priority_fn: Callable[[Se
     #
     # 1. Ask the objective for the start state:
     #       start = objective.initial_state()
-    
-    start = objective.initial_state()
-    
+    #
     # 2. Wrap the start state in a SearchNode. At the start, the plan is []
     #    and path_cost is 0.
-    
-    start_node = SearchNode(state = start, plan = [], path_cost = 0,priority=0)
-    if priority_fn is not None:
-        start_node.priority = priority_fn(start_node)
-    
+    #
     # 3. If priority_fn is not None, compute the start node's priority before
     #    pushing it. This matters for UCS and A*.
-    
+    #
     # 4. Push the start node into the frontier.
-    
-    frontier.push(start_node) 
-    
+    #
     # 5. Create a reached dictionary. A useful shape is:
     #       reached[state_key(state)] = [(path_cost, battery_level), ...]
-
+    #
     #    Why a list of records? With battery, there may be more than one
     #    non-dominated way to reach the same location and remaining targets.
-    
-    
-    reached = {}
-    reached[state_key(start_node.state)] = [(start_node.path_cost, battery_level(start_node.state))]
-
-    while not frontier.empty():
-        node = frontier.pop()
-
-        key = state_key(node.state)
-        battery = battery_level(node.state)
-        records = reached.get(key, [])
-
-        # Skip nodes that have been dominated since insertion
-        if (node.path_cost, battery) not in records:
-            continue
-
-        # Check whether this is a goal
-        if objective.is_goal(node.state):
-            return node.plan
-
-        # Expand the node
-        LAST_SEARCH_STATS["expanded"] += 1
-
-        for transition in objective.successors(node.state):
-            child_state = transition.next_state
-            child_plan = node.plan + [transition.action]
-            child_cost = node.path_cost + transition.cost
-
-            #child = SearchNode(child_state, child_plan, child_cost)
-            
-            child = SearchNode(priority=0,state=child_state,plan=child_plan,path_cost=child_cost)
-
-            if priority_fn is not None:
-                child.priority = priority_fn(child)
-
-            child_key = state_key(child.state)
-            child_battery = battery_level(child.state)
-            
-           # print("STATE:", child.state)
-           # print("ROBOT:", child.state.robot, type(child.state.robot))
-           # print("REMAINING:", child.state.remaining, type(child.state.remaining))
-           # print("KEY:", child_key)
-
-            # Get existing routes to this state
-            existing = reached.get(child_key, [])
-
-            # Check whether an existing route dominates this child
-            dominated = any(
-                cost <= child_cost and battery >= child_battery
-                for cost, battery in existing
-            )
-
-            if dominated:
-                continue
-
-            # Remove routes dominated by this child
-            existing = [
-                (cost, battery)
-                for cost, battery in existing
-                if not (child_cost <= cost and child_battery >= battery)
-            ]
-
-            # Record this child as a non-dominated route
-            existing.append((child_cost, child_battery))
-            reached[child_key] = existing
-
-            # Add the child to the frontier
-            frontier.push(child)
-
-    raise ValueError("No solution found")
+    #
     # 6. While the frontier is not empty:
     #       node = frontier.pop()
     #
@@ -368,7 +299,41 @@ def graph_search(objective: RescueObjective, frontier, priority_fn: Callable[[Se
     # 12. If kept, update reached and push the child into the frontier.
     #
     # If the loop ends without finding a goal, raise ValueError.
-    
+    start_state = objective.initial_state() #ask objective for start state
+    start_node = SearchNode(priority=0, state=start_state, plan=[], path_cost=0) #initialize start node with SearchNode wrapper
+
+    if priority_fn: #check if priority function is provided
+        start_node.priority = priority_fn(start_node) #compute start node priority
+
+    frontier.push(start_node) #add start node to frontier
+
+    reached = {} #creating reached dictionary
+    reached[state_key(start_state)] = [(0, battery_level(start_state))] #initialize reached dictionary
+
+    while not frontier.empty(): #while the frontier is not empty
+        node = frontier.pop() #pop the node from the frontier
+
+        key = state_key(node.state)
+        if is_dominated(reached.get(key, []), node.path_cost, battery_level(node.state)):
+            continue
+
+        if objective.is_goal(node.state):
+            return node.plan #checking if we are at the goal, if so return the plan
+        
+        LAST_SEARCH_STATS["expanded"] += 1 #mark the node as expanded
+        for transition in objective.successors(node.state): #for each possible transition from the current node's state
+            child_node = SearchNode(priority=0, state=transition.next_state, plan=node.plan + [transition.action], path_cost=node.path_cost + transition.cost) #making new child node
+            
+            if priority_fn: #if priority function is provided
+                child_node.priority = priority_fn(child_node) #give the child node a priority
+
+            child_key = state_key(child_node.state)
+            if is_dominated(reached.get(child_key, []), child_node.path_cost, battery_level(child_node.state)):
+                continue
+
+            reached[child_key] = update_records(reached.get(child_key, []), child_node.path_cost, battery_level(child_node.state))
+            frontier.push(child_node)
+    raise ValueError("No solution found")
 
 def depth_first_plan(objective: RescueObjective) -> list[str]:
     # === Q2 SELF-REFLECTION (0.5 point) ===
@@ -391,8 +356,7 @@ def depth_first_plan(objective: RescueObjective) -> list[str]:
 
 def breadth_first_plan(objective: RescueObjective) -> list[str]:
     # TODO: call graph_search with a QueueFrontier
-    
-    return graph_search(objective, QueueFrontier())
+     return graph_search(objective, QueueFrontier())
 
 def uniform_cost_plan(objective: RescueObjective) -> list[str]:
     # === Q3 SELF-REFLECTION (0.5 point) ===
@@ -407,7 +371,8 @@ def uniform_cost_plan(objective: RescueObjective) -> list[str]:
     #
     # Put your answer on the comment lines below the YOUR RESPONSE marker.
     # YOUR RESPONSE:
-    #
+    # I used Claude, an AI coding assitant, for help with this question. Specifcally, I prompted it to help me with the computation of the path cost priority and implementing this as a lambda function. 
+    # I checked my answer by running the autograder and the comparison test of BFS to UCS on rubble_corrider.
     # === END Q3 SELF-REFLECTION ===
     #
     # TODO: call graph_search with a PriorityFrontier and path-cost priority
@@ -430,7 +395,7 @@ def astar_plan(objective: RescueObjective, heuristic: Callable[[Any, RescueObjec
     # === END Q4 SELF-REFLECTION ===
     #
     # TODO: call graph_search with path_cost + heuristic
-    return graph_search(objective,PriorityFrontier(),priority_fn=lambda node: node.path_cost + remaining_inspection_heuristic(node.state, objective))
+    return graph_search(objective,PriorityFrontier(),priority_fn=lambda node: node.path_cost + heuristic(node.state, objective))
 
 class GreedyRescuePlanner:
     """Repeatedly plan to one target chosen by a heuristic scoring rule."""
@@ -472,133 +437,143 @@ class GreedyRescuePlanner:
 
         return total_plan
 
-class SimulatedAnnealingRescuePlanner:
-    """Use local search to improve the order of multi-survivor rescue targets."""
+# class SimulatedAnnealingRescuePlanner:
+#     """Use local search to improve the order of multi-survivor rescue targets."""
 
-    def __init__(self, seed: int = 0, iterations: int = 1000,
-                 initial_temperature: float = 20.0, cooling_rate: float = 0.995):
-        self.seed = seed
-        self.iterations = iterations
-        self.initial_temperature = initial_temperature
-        self.cooling_rate = cooling_rate
+#     def __init__(self, seed: int = 0, iterations: int = 1000,
+#                  initial_temperature: float = 20.0, cooling_rate: float = 0.995):
+#         self.seed = seed
+#         self.iterations = iterations
+#         self.initial_temperature = initial_temperature
+#         self.cooling_rate = cooling_rate
 
-    def plan(self, objective) -> list[str]:
-        # === Q8 SELF-REFLECTION (0.5 point) ===
-        # Write 3-5 sentences below, at least 25 words total.
+#     def plan(self, objective) -> list[str]:
+#         # === Q8 SELF-REFLECTION (0.5 point) ===
+#         # Write 3-5 sentences below, at least 25 words total.
         
-        # Say whether you used GenAI, artificial intelligence,
-        # machine learning, or a coding assistant for this question.
-        # If yes, name the tool and summarize or copy the prompt(s).
-        # If no, explain why not.
-        # Say how you checked your answer.
-        # Include at least one concrete project detail, such as a function name,
-        # file name, map name, test id, or command you ran.
-        #
-        # Put your answer on the comment lines below the YOUR RESPONSE marker.
-        # YOUR RESPONSE: I did use GenAI, as in ChatGPT, to help me with certain tasks that I struggled to figure out the syntax for such as how to get the remaining labels (particularly using hasattr()). I additionally used it for the ValueError message since I am not the best with putting in breakers for when the code doesn't work like I anticipated. It helped me think about where my code could break and how I could account for that.
-        #
-        # === END Q8 SELF-REFLECTION ===
-        #
-        # TODO: optimize the order in which remaining survivors are rescued.
-        #
-        # Suggested approach:
-        #
-        # 1. Represent a local-search state as a tuple of survivor labels, e.g.
-        #       ("S2", "S4", "S1", "S3")
-        #
-        # 2. Write an evaluation helper that converts an order into an actual
-        #    action plan. For each label in the order, plan one leg from the
-        #    current MissionState to that survivor. The _SingleLegObjective
-        #    below is designed for that. Use uniform_cost_plan for each leg.
-        #
-        # 3. If a leg is impossible, treat that order as having infinite cost.
-        #
-        # 4. Generate neighboring orders by swapping two labels, reversing a
-        #    segment, or moving one label to another position.
-        #
-        # 5. Use simulated annealing: always accept a better order, and sometimes
-        #    accept a worse order with probability based on temperature:
-        #       math.exp(-(new_cost - old_cost) / temperature)
-        #
-        # 6. Use random.Random(self.seed) instead of the global random module so
-        #    your planner is deterministic for the autograder.
-        #
-        # 7. Return the action list for the best order found.
+#         # Say whether you used GenAI, artificial intelligence,
+#         # machine learning, or a coding assistant for this question.
+#         # If yes, name the tool and summarize or copy the prompt(s).
+#         # If no, explain why not.
+#         # Say how you checked your answer.
+#         # Include at least one concrete project detail, such as a function name,
+#         # file name, map name, test id, or command you ran.
+#         #
+#         # Put your answer on the comment lines below the YOUR RESPONSE marker.
+#         # YOUR RESPONSE: I did use GenAI, as in ChatGPT, to help me with certain tasks that I struggled to figure out the syntax for such as how to get the remaining labels (particularly using hasattr()). I additionally used it for the ValueError message since I am not the best with putting in breakers for when the code doesn't work like I anticipated. It helped me think about where my code could break and how I could account for that.
+#         #
+#         # === END Q8 SELF-REFLECTION ===
+#         #
+#         # TODO: optimize the order in which remaining survivors are rescued.
+#         #
+#         # Suggested approach:
+#         #
+#         # 1. Represent a local-search state as a tuple of survivor labels, e.g.
+#         #       ("S2", "S4", "S1", "S3")
+#         #
+#         # 2. Write an evaluation helper that converts an order into an actual
+#         #    action plan. For each label in the order, plan one leg from the
+#         #    current MissionState to that survivor. The _SingleLegObjective
+#         #    below is designed for that. Use uniform_cost_plan for each leg.
+#         #
+#         # 3. If a leg is impossible, treat that order as having infinite cost.
+#         #
+#         # 4. Generate neighboring orders by swapping two labels, reversing a
+#         #    segment, or moving one label to another position.
+#         #
+#         # 5. Use simulated annealing: always accept a better order, and sometimes
+#         #    accept a worse order with probability based on temperature:
+#         #       math.exp(-(new_cost - old_cost) / temperature)
+#         #
+#         # 6. Use random.Random(self.seed) instead of the global random module so
+#         #    your planner is deterministic for the autograder.
+#         #
+#         # 7. Return the action list for the best order found.
         
-        labels = tuple(objective.remaining if hasattr(objective, "remaining")
-                   else objective.labels) 
+#         labels = tuple(objective.remaining if hasattr(objective, "remaining")
+#                    else objective.labels) 
 
-        current_order = tuple(labels)
-        probability = random.Random(self.seed)
+#         current_order = tuple(labels)
+#         probability = random.Random(self.seed)
+#         leg_cache = {}
 
-        def evaluate(order):
-            state = objective.initial_state()
-            total_plan = []
-            total_cost = 0
+#         def get_leg_plan(state, label):
+#             key = (state_key(state), battery_level(state), label)
+#             if key not in leg_cache:
+#                 leg_objective = _SingleLegObjective(objective, state, label)
+#                 try:
+#                     leg_cache[key] = uniform_cost_plan(leg_objective)
+#                 except ValueError:
+#                     leg_cache[key] = None
+#             return leg_cache[key]
 
-            for label in order:
-                leg_objective = _SingleLegObjective(objective, state, label)
+#         def evaluate(order):
+#             state = objective.initial_state()
+#             total_plan = []
+#             total_cost = 0
 
-                try:
-                    leg_plan = uniform_cost_plan(leg_objective)
-                except ValueError:
-                    return float("inf"), []
+#             for label in order:
+#                 leg_plan = get_leg_plan(state, label)
+#                 if leg_plan is None:
+#                     return float("inf"), []
 
-                total_plan.extend(leg_plan)
+#                 total_plan.extend(leg_plan)
 
-                for action in leg_plan:
-                    for transition in objective.successors(state):
-                        if transition.action == action:
-                            state = transition.next_state
-                            total_cost += transition.cost
-                            break
+#                 for action in leg_plan:
+#                     for transition in objective.successors(state):
+#                         if transition.action == action:
+#                             state = transition.next_state
+#                             total_cost += transition.cost
+#                             break
+#                     else:
+#                         return float("inf"), []
 
-            return total_cost, total_plan
+#             return total_cost, total_plan
 
-        current_cost, current_plan = evaluate(current_order)
+#         current_cost, current_plan = evaluate(current_order)
 
-        best_order = current_order
-        best_cost = current_cost
-        best_plan = current_plan
+#         best_order = current_order
+#         best_cost = current_cost
+#         best_plan = current_plan
 
-        temperature = self.initial_temperature
+#         temperature = self.initial_temperature
 
-        for _ in range(self.iterations):
+#         for _ in range(self.iterations):
 
-            # Make a neighboring ordering by swapping two labels
-            neighbor = list(current_order)
+#             # Make a neighboring ordering by swapping two labels
+#             neighbor = list(current_order)
 
-            if len(neighbor) >= 2:
-                i, j = probability.sample(range(len(neighbor)), 2)
-                neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+#             if len(neighbor) >= 2:
+#                 i, j = probability.sample(range(len(neighbor)), 2)
+#                 neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
 
-            neighbor = tuple(neighbor)
+#             neighbor = tuple(neighbor)
 
-            neighbor_cost, neighbor_plan = evaluate(neighbor)
+#             neighbor_cost, neighbor_plan = evaluate(neighbor)
 
-            # Always accept an improvement
-            if neighbor_cost < current_cost:
-                accept = True
+#             # Always accept an improvement
+#             if neighbor_cost < current_cost:
+#                 accept = True
 
-            # Sometimes accept a worse solution
-            elif temperature > 0:
-                chance = math.exp(-(neighbor_cost - current_cost) / temperature)
-                accept = probability.random() < chance
+#             # Sometimes accept a worse solution
+#             elif temperature > 0:
+#                 chance = math.exp(-(neighbor_cost - current_cost) / temperature)
+#                 accept = probability.random() < chance
 
-            if accept:
-                current_order = neighbor
-                current_cost = neighbor_cost
-                current_plan = neighbor_plan
+#             if accept:
+#                 current_order = neighbor
+#                 current_cost = neighbor_cost
+#                 current_plan = neighbor_plan
 
-            # Track the best solution ever found
-            if current_cost < best_cost:
-                best_order = current_order
-                best_cost = current_cost
-                best_plan = current_plan
+#             # Track the best solution ever found
+#             if current_cost < best_cost:
+#                 best_order = current_order
+#                 best_cost = current_cost
+#                 best_plan = current_plan
 
-            temperature *= self.cooling_rate
+#             temperature *= self.cooling_rate
 
-        return best_plan
+#         return best_plan
 
 class _SingleLegObjective:
     """Adapter for planning from a current state to one target label."""
